@@ -1,5 +1,5 @@
 [1/5] cmd.exe /C "cd /D C:\Espressif\workspace\uart_async_rxtxtasks\build\esp-idf\esptool_py && python C:/Espressif/frameworks/esp-idf-v5.0.1/components/partition_table/check_sizes.py --offset 0x8000 partition --type app C:/Espressif/workspace/uart_async_rxtxtasks/build/partition_table/partition-table.bin C:/Espressif/workspace/uart_async_rxtxtasks/build/uart_async_rxtxtasks.bin"
-uart_async_rxtxtasks.bin binary size 0x327f0 bytes. Smallest app partition is 0x100000 bytes. 0xcd810 bytes (80%) free.
+uart_async_rxtxtasks.bin binary size 0x328b0 bytes. Smallest app partition is 0x100000 bytes. 0xcd750 bytes (80%) free.
 [2/5] Performing build step for 'bootloader'
 [1/1] cmd.exe /C "cd /D C:\Espressif\workspace\uart_async_rxtxtasks\build\bootloader\esp-idf\esptool_py && python C:/Espressif/frameworks/esp-idf-v5.0.1/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x1000 C:/Espressif/workspace/uart_async_rxtxtasks/build/bootloader/bootloader.bin"
 Bootloader binary size 0x6710 bytes. 0x8f0 bytes (8%) free.
@@ -7,7 +7,7 @@ Bootloader binary size 0x6710 bytes. 0x8f0 bytes (8%) free.
 esptool esp32 -p COM12 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 40m --flash_size 2MB 0x1000 bootloader/bootloader.bin 0x10000 uart_async_rxtxtasks.bin 0x8000 partition_table/partition-table.bin
 esptool.py v4.5.1
 Serial port COM12
-Connecting....
+Connecting.....
 Chip is ESP32-D0WD-V3 (revision v3.0)
 Features: WiFi, BT, Dual Core, 240MHz, VRef calibration in efuse, Coding Scheme None
 Crystal is 40MHz
@@ -24,21 +24,21 @@ Flash will be erased from 0x00008000 to 0x00008fff...
 Compressed 26384 bytes to 16451...
 Writing at 0x00001000... (50 %)
 Writing at 0x000076ae... (100 %)
-Wrote 26384 bytes (16451 compressed) at 0x00001000 in 0.8 seconds (effective 271.0 kbit/s)...
+Wrote 26384 bytes (16451 compressed) at 0x00001000 in 0.9 seconds (effective 244.0 kbit/s)...
 Hash of data verified.
-Compressed 206832 bytes to 109730...
+Compressed 207024 bytes to 109858...
 Writing at 0x00010000... (14 %)
-Writing at 0x0001ca8d... (28 %)
-Writing at 0x00022399... (42 %)
-Writing at 0x0002811c... (57 %)
-Writing at 0x0002e576... (71 %)
-Writing at 0x000387a0... (85 %)
-Writing at 0x0003e493... (100 %)
-Wrote 206832 bytes (109730 compressed) at 0x00010000 in 2.6 seconds (effective 634.4 kbit/s)...
+Writing at 0x0001ca85... (28 %)
+Writing at 0x000223b1... (42 %)
+Writing at 0x0002812c... (57 %)
+Writing at 0x0002e5a2... (71 %)
+Writing at 0x0003879e... (85 %)
+Writing at 0x0003e4b2... (100 %)
+Wrote 207024 bytes (109858 compressed) at 0x00010000 in 2.6 seconds (effective 634.1 kbit/s)...
 Hash of data verified.
 Compressed 3072 bytes to 103...
 Writing at 0x00008000... (100 %)
-Wrote 3072 bytes (103 compressed) at 0x00008000 in 0.1 seconds (effective 336.7 kbit/s)...
+Wrote 3072 bytes (103 compressed) at 0x00008000 in 0.1 seconds (effective 340.0 kbit/s)...
 Hash of data verified.
 
 Leaving...

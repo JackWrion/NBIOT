@@ -14,8 +14,12 @@
 #include "string.h"
 #include "driver/gpio.h"
 
-static const int RX_BUF_SIZE = 1024;
+static const int RX_BUF_SIZE = 512;
 int count = -3;
+static int status_mqtt = 0;
+static char ceng_data[128] ="";
+
+
 
 #define TXD_PIN (GPIO_NUM_17)				// TODO config UART here
 #define RXD_PIN (GPIO_NUM_16)
@@ -58,6 +62,26 @@ void init(void) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int sendData(const char* logName, const char* data)
 {
     const int len = strlen(data);
@@ -66,6 +90,153 @@ int sendData(const char* logName, const char* data)
     ESP_LOGI(logName, "write %s\n",data);
     return txBytes;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+int count2 = 2;
+char *psi,*rsrp,*rsrq,*sinr,*cellID;
+
+void getDataCENG(char* rawData){
+    char* data = strstr(rawData,"\"");
+    //printf("%s",b);
+    char arrData[strlen(data)];
+    for(int i = 0;i < strlen(data);i++){
+        arrData[i] = data[i];
+    }
+    char* presentData = strtok(arrData," \",");
+    while(presentData != NULL && count2 <9){
+        presentData = strtok(NULL, " ,");
+
+        if(count2 == 2){
+            psi = presentData;
+        }
+        else if(count2 == 3){
+            rsrp = presentData;
+        }
+        else if(count2 == 5){
+            rsrq = presentData;
+        }
+        else if(count2 ==6){
+            sinr = presentData;
+        }
+        else if(count2 ==8){
+            cellID = presentData;
+        }
+        count2++;
+    }
+    count2 = 2;
+    //printf("{\"psi\": &s,\"rsrp\": &s,\"rsrq\": &s,\"sinr\": &s,\"cellID\": &s,}", psi, rsrp, rsrq, sinr, cellID);
+    sprintf(ceng_data,"{\"psi\":%s,\"rsrp\":%s,\"rsrq\":%s,\"sinr\":%s,\"cellID\":%s}\r\r\r\r\r", psi, rsrp, rsrq, sinr, cellID);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+static void mqtt_task(void *arg)
+{
+    static const char *MQTT_TASK_TAG = "MQTT_TASK";
+    esp_log_level_set(MQTT_TASK_TAG, ESP_LOG_INFO);
+    while (1) {
+
+    	//TODO Check connect
+    	if (status_mqtt == 0){
+    		sendData(MQTT_TASK_TAG, "AT+CNACT=0,1\r");
+    		status_mqtt = 1;
+    		vTaskDelay(1000 / portTICK_PERIOD_MS);
+    	}
+
+    	// config Host and client ID
+    	else if (status_mqtt == 1){
+    		sendData(MQTT_TASK_TAG, "AT+SMCONF=\"URL\",\"mqtt.innoway.vn\"\r");
+    		vTaskDelay(500 / portTICK_PERIOD_MS);
+    		sendData(MQTT_TASK_TAG, "AT+SMCONF=\"CLIENTID\",\"ABCDE\"\r");
+    		status_mqtt = 2;
+    		vTaskDelay(1000 / portTICK_PERIOD_MS);
+    	}
+
+    	//config Username and Password         // PWD is very IMPORTANT
+    	else if (status_mqtt == 2){
+    		sendData(MQTT_TASK_TAG, "AT+SMCONF=\"USERNAME\",\"JACK\"\r");
+    		sendData(MQTT_TASK_TAG, "AT+SMCONF=\"PASSWORD\",\"C3ZBwHndbwMkOXIz4HmJWRs9OrddkTfU\"\r");
+    		status_mqtt = 3;
+    	    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    	}
+
+    	// CONNECTING.....
+    	else if (status_mqtt == 3){
+    		sendData(MQTT_TASK_TAG, "AT+SMCONN\r");
+    	    status_mqtt = 4;
+    	    vTaskDelay(20000 / portTICK_PERIOD_MS);
+    	}
+
+
+
+    	//Subscribe
+    	else if (status_mqtt == 4){
+    		//sendData(TX_TASK_TAG, "at+cpowd=0\r");
+    		sendData(MQTT_TASK_TAG, "AT+SMSUB=\"messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/status\",0\r");
+    		status_mqtt = 5;
+    		vTaskDelay(2000 / portTICK_PERIOD_MS);
+    	}
+
+
+    	//Get CENG DATA
+    	else if (status_mqtt == 5){
+    		sendData(MQTT_TASK_TAG, "AT+CENG?\r");		// remember delete malloc
+    		status_mqtt = 6;
+    		vTaskDelay(5000 / portTICK_PERIOD_MS);
+    	}
+
+    	// Publishing.......
+        else if (status_mqtt == 6){
+   	   		//sendData(TX_TASK_TAG, "at+cpowd=0\r");
+   	   		sendData(MQTT_TASK_TAG, "AT+SMPUB=\"messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/update\",64,0,1\r");
+   	   		status_mqtt = 7;
+   	   		vTaskDelay(1000 / portTICK_PERIOD_MS);
+   	   	}
+    	//AT+SMPUB="messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/update",63,0,1
+
+    	//add data publish.....
+        else if (status_mqtt == 7){
+           	 //sendData(TX_TASK_TAG, "at+cpowd=0\r");
+        	 printf("at step 7: %s\n",ceng_data);
+           	 sendData(MQTT_TASK_TAG, ceng_data);
+           	 status_mqtt = 5;
+           	 vTaskDelay(10000 / portTICK_PERIOD_MS);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -102,7 +273,7 @@ static void tx_task(void *arg)
     	else if (count == 0){
     		//sendData(TX_TASK_TAG, "\r\n");
     		sendData(TX_TASK_TAG, "ate0\r");
-    		vTaskDelay(500 / portTICK_PERIOD_MS);
+    		vTaskDelay(1000 / portTICK_PERIOD_MS);
     	}
     	else if (count == 1){
     	    //sendData(TX_TASK_TAG, "\r\n");
@@ -117,9 +288,11 @@ static void tx_task(void *arg)
 
     	// Out of step , turn off
     	else if (count >= 6){
-    		sendData(TX_TASK_TAG, "at+cpowd=0\r");
-    		count = -2;
-    		vTaskDelay(5000 / portTICK_PERIOD_MS);
+    		xTaskCreate(mqtt_task, "mqtt_task", 1024*2, NULL, configMAX_PRIORITIES-2, NULL);
+    		vTaskDelete(NULL);
+//    		sendData(TX_TASK_TAG, "at+cpowd=0\r");
+//    		count = -2;
+//    		vTaskDelay(5000 / portTICK_PERIOD_MS);
     	}
 
     }
@@ -145,11 +318,13 @@ static void rx_task(void *arg)
             	printf("Count: %d\n",count);
             }
 
-
-            printf("data: %s\n",data);
-
+            //printf("data ,mqttstatus: %s....%d\n",data,status_mqtt);
             //////
-
+            if (strstr(temp,"+CENG")){
+            	printf("at step rx 6:..\n");
+            	strcpy(ceng_data,(char*)data);
+            	getDataCENG(ceng_data);
+            }
 
 
             ESP_LOGI(RX_TASK_TAG, "Read %d bytes: '%s'", rxBytes, data);
@@ -161,63 +336,6 @@ static void rx_task(void *arg)
 
 
 
-
-
-static void mqtt_task(void *arg)
-{
-    static const char *MQTT_TASK_TAG = "TX_TASK";
-    esp_log_level_set(MQTT_TASK_TAG, ESP_LOG_INFO);
-    while (1) {
-    	printf("Step:.. %d\n",count);
-
-    	//TODO Turn off anyway at the first state
-    	if (count == -3){
-    		sendData(MQTT_TASK_TAG, "at+cpowd=0\r");
-    		count = -2;
-    		vTaskDelay(3000 / portTICK_PERIOD_MS);
-    	}
-
-    	// Turn on 1 ---> hold 1 in 5s
-    	else if (count == -2){
-    		//sendData(TX_TASK_TAG, "at+cpowd=0\r");
-    		gpio_set_level(POWER,0);
-    		count = -1;
-    		vTaskDelay(5000 / portTICK_PERIOD_MS);
-    	}
-    	// release 0 and wait 5s for completely setup
-    	else if (count == -1){
-    		gpio_set_level(POWER,1);
-    		count = 0;
-    		gpio_set_level(17,1);
-    		vTaskDelay(10000 / portTICK_PERIOD_MS);
-    	}
-
-    	// Re-call turn off echo until SIM accepting UART
-    	else if (count == 0){
-    		//sendData(TX_TASK_TAG, "\r\n");
-    		sendData(MQTT_TASK_TAG, "ate0\r");
-    		vTaskDelay(500 / portTICK_PERIOD_MS);
-    	}
-    	else if (count == 1){
-    	    //sendData(TX_TASK_TAG, "\r\n");
-    		sendData(MQTT_TASK_TAG, "at\r\n");
-    	    vTaskDelay(5000 / portTICK_PERIOD_MS);
-    	}
-    	else if (count > 1 && count < 6){
-    		sendData(MQTT_TASK_TAG, "at\r");
-    		vTaskDelay(5000 / portTICK_PERIOD_MS);
-    	}
-
-
-    	// Out of step , turn off
-    	else if (count >= 6){
-    		sendData(MQTT_TASK_TAG, "at+cpowd=0\r");
-    		count = -2;
-    		vTaskDelay(5000 / portTICK_PERIOD_MS);
-    	}
-
-    }
-}
 
 
 
@@ -240,6 +358,6 @@ void app_main(void)
 {
     init();
     power_init();
-    xTaskCreate(rx_task, "uart_rx_task", 1024*2, NULL, configMAX_PRIORITIES-1, NULL);
-    xTaskCreate(tx_task, "uart_tx_task", 1024*2, NULL, configMAX_PRIORITIES, NULL);
+    xTaskCreate(rx_task, "uart_rx_task", 1024*2, NULL, configMAX_PRIORITIES, NULL);
+    xTaskCreate(tx_task, "uart_tx_task", 1024*2, NULL, configMAX_PRIORITIES-1, NULL);
 }
