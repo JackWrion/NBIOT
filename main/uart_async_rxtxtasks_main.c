@@ -19,6 +19,10 @@
 #define RXD_PIN (GPIO_NUM_16)
 #define POWER GPIO_NUM_4
 
+#define PASSWORD "4CndXRTNmiaqsORnNHd7"
+#define BROKER "demo.thingsboard.io"
+
+
 static int ACK=0;
 static int Err_count = 0;
 
@@ -155,22 +159,23 @@ static void mqtt_task(void *arg)
 
     	// config Host and client ID
     	else if (status_mqtt == 1){
-    		sendData(MQTT_TASK_TAG, "AT+SMCONF=\"URL\",\"mqtt.innoway.vn\"\r");
+    		sendData(MQTT_TASK_TAG, "AT+SMCONF=\"URL\",\"demo.thingsboard.io\"\r");
     		vTaskDelay(500 / portTICK_PERIOD_MS);
-    		sendData(MQTT_TASK_TAG, "AT+SMCONF=\"CLIENTID\",\"ABCDE\"\r");
+    		sendData(MQTT_TASK_TAG, "AT+SMCONF=\"CLIENTID\",\"135e5672-8c35-40e7-9854-ecd81a344ee7\"\r");
     		status_mqtt = 2;
     		vTaskDelay(1000 / portTICK_PERIOD_MS);
     	}
 
     	//config Username and Password
     	else if (status_mqtt == 2){
-    		sendData(MQTT_TASK_TAG, "AT+SMCONF=\"USERNAME\",\"JACK\"\r");
+    		sendData(MQTT_TASK_TAG, "AT+SMCONF=\"USERNAME\",\"4CndXRTNmiaqsORnNHd7\"\r");
     		vTaskDelay(100 / portTICK_PERIOD_MS);
-    		sendData(MQTT_TASK_TAG, "AT+SMCONF=\"PASSWORD\",\"C3ZBwHndbwMkOXIz4HmJWRs9OrddkTfU\"\r");	// PASSWORD is very IMPORTANT
+    		sendData(MQTT_TASK_TAG, "AT+SMCONF=\"PASSWORD\",\"4CndXRTNmiaqsORnNHd7\"\r");
+    		//sendData(MQTT_TASK_TAG, "AT+SMCONF=\"PASSWORD\",\"C3ZBwHndbwMkOXIz4HmJWRs9OrddkTfU\"\r");	// PASSWORD is very IMPORTANT
     		vTaskDelay(100 / portTICK_PERIOD_MS);
     		sendData(MQTT_TASK_TAG, "AT+SMCONF?\r");
     		status_mqtt = 3;
-    	    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    	    vTaskDelay(2000 / portTICK_PERIOD_MS);
     	}
 
     	// CONNECTING.....
@@ -184,9 +189,10 @@ static void mqtt_task(void *arg)
     	//Subscribe
     	else if (status_mqtt == 4){
     		//sendData(TX_TASK_TAG, "at+cpowd=0\r");
-    		sendData(MQTT_TASK_TAG, "AT+SMSUB=\"messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/status\",0\r");
+    		//sendData(MQTT_TASK_TAG, "AT+SMSUB=\"messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/status\",0\r");
+    		sendData(MQTT_TASK_TAG, "AT+SMSUB=\"v1/devices/me/rpc/request/+\",0\r");
     		status_mqtt = 5;
-    		vTaskDelay(1000 / portTICK_PERIOD_MS);
+    		vTaskDelay(5000 / portTICK_PERIOD_MS);
     	}
 
 
@@ -203,7 +209,8 @@ static void mqtt_task(void *arg)
     	// -------------------------
         else if (status_mqtt == 6){
         	char msg[100];
-        	sprintf(msg,"AT+SMPUB=\"messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/update\",%d,0,1\r",ceng_len);
+        	//sprintf(msg,"AT+SMPUB=\"messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/update\",%d,0,1\r",ceng_len);
+        	sprintf(msg,"AT+SMPUB=\"v1/devices/me/telemetry\",%d,0,1\r",ceng_len);
    	   		//sendData(MQTT_TASK_TAG, "AT+SMPUB=\"messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/update\",64,0,0\r");
         	sendData(MQTT_TASK_TAG, msg);
    	   		vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -235,7 +242,7 @@ static int count = -3;
 static void tx_task(void *arg)
 {
     static const char *TX_TASK_TAG = "TX_TASK";
-    esp_log_level_set(TX_TASK_TAG, ESP_LOG_WARN);
+    esp_log_level_set(TX_TASK_TAG, ESP_LOG_INFO);
     while (1) {
     	printf("At preparing step:.. %d\n",count);
 
