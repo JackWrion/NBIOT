@@ -203,6 +203,13 @@ static void mqtt_task(void *arg)
     		if (ACK) status_mqtt = 6;
     	}
 
+
+
+
+
+
+
+
     	// Publishing.......
     	// Format-------------------
     	// AT+SMPUB="messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/update",64,0,1
@@ -289,9 +296,7 @@ static void tx_task(void *arg)
     	else if (count >= 6){
     		xTaskCreate(mqtt_task, "mqtt_task", 1024*2, NULL, configMAX_PRIORITIES-1, NULL);
     		vTaskDelete(NULL);
-//    		sendData(TX_TASK_TAG, "at+cpowd=0\r");
-//    		count = -2;
-//    		vTaskDelay(5000 / portTICK_PERIOD_MS);
+
     	}
     }
 }
@@ -350,7 +355,7 @@ static void rx_task(void *arg)
             // handler when Error too much
             if (ACK == 0){
             	Err_count += 1;
-            	if (Err_count == 5) esp_restart();
+            	if (Err_count == 10) esp_restart();
             }
             else Err_count = 0;
 
@@ -379,6 +384,18 @@ static void led_task(void * arg){
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 }
+
+
+
+
+//static void GNSS(){
+//	AT+CGNSPWR=1
+//	AT+CGNSINF
+//}
+
+
+
+
 
 
 
