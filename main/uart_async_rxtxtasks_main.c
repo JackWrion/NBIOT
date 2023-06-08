@@ -15,9 +15,13 @@
 #include "driver/gpio.h"
 #include "cJSON.h"
 
-#define RX_BUF_SIZE  512
+#define RX_BUF_SIZE  256
 #define TXD_PIN (GPIO_NUM_17)				// TODO config UART here
 #define RXD_PIN (GPIO_NUM_16)
+
+#define ECHO_TEST_TXD   (1)
+#define ECHO_TEST_RXD   (3)
+
 #define POWER GPIO_NUM_4
 
 #define PASSWORD "4CndXRTNmiaqsORnNHd7"
@@ -57,6 +61,28 @@ static void uart_init(void) {
     uart_param_config(UART_NUM_1, &uart_config);
     uart_set_pin(UART_NUM_1, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 }
+
+
+
+static void uart_init_2(void) {
+    const uart_config_t uart_config = {
+        .baud_rate = 9600,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+    // We won't use a buffer for sending data.
+    uart_driver_install(UART_NUM_0, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
+    uart_param_config(UART_NUM_0, &uart_config);
+    uart_set_pin(UART_NUM_0, ECHO_TEST_TXD, ECHO_TEST_RXD, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    uart_set_mode(UART_NUM_0, UART_MODE_RS485_HALF_DUPLEX);
+}
+
+
+
+
 
 
 static void led_init(void){
@@ -102,6 +128,35 @@ int sendData(const char* logName, const char* data)
 
 
 
+char cm4data[64] = "";
+
+float temper = 0;
+float mois = 0;
+
+void parseTempMois(char rawData[]){
+
+	char *pt;
+	pt = strtok (rawData,",");
+	int a = atoi(pt);
+
+	pt = strtok (NULL, ",");
+	temper = strtof(pt,NULL);
+	pt = strtok (NULL, ",");
+	mois = strtof(pt,NULL);
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 char ceng_data[256]="";
 static int ceng_len = 0;
@@ -140,7 +195,13 @@ void getDataCENG(char* rawData){
         	cJSON_AddNumberToObject(json, "cellID", atoi(presentData));
         }
         count2++;
+
     }
+
+    cJSON_AddNumberToObject(json, "latitude", 10.778234118940283);
+    cJSON_AddNumberToObject(json, "longitude",106.68034449063458);
+    cJSON_AddNumberToObject(json, "temp", temper);
+    cJSON_AddNumberToObject(json, "mois", mois);
     count2 = 2;
 
 }
@@ -379,10 +440,25 @@ static void rx_task(void *arg)
     static const char *RX_TASK_TAG = "RX_TASK";
     esp_log_level_set(RX_TASK_TAG, ESP_LOG_INFO);
     uint8_t* data = (uint8_t*) malloc(RX_BUF_SIZE+1);
-
+    uint8_t* data_2 = (uint8_t*) malloc(128+1);
 
     while (1) {
         const int rxBytes = uart_read_bytes(UART_NUM_1, data, RX_BUF_SIZE, 1000 / portTICK_PERIOD_MS);
+        const int rxBytes_2 = uart_read_bytes(UART_NUM_0, data_2, RX_BUF_SIZE, 1000 / portTICK_PERIOD_MS);
+
+
+        if (rxBytes_2 > 0){
+        	data_2[rxBytes_2] = 0;
+
+        	strcpy(cm4data, (char*)data_2);
+        	parseTempMois(cm4data);
+
+        	ESP_LOGI(RX_TASK_TAG, "Read at RX2 %d bytes:...\n", rxBytes_2);
+        	ESP_LOG_BUFFER_HEXDUMP(RX_TASK_TAG, data_2, rxBytes_2, ESP_LOG_WARN);
+        }
+
+
+
 
 
 
@@ -457,6 +533,7 @@ static void rx_task(void *arg)
         }
     }
     free(data);
+    free(data_2);
 }
 
 
@@ -495,6 +572,7 @@ static void led_task(void * arg){
 void app_main(void)
 {
     uart_init();
+    uart_init_2();
     power_init();
     led_init();
 
