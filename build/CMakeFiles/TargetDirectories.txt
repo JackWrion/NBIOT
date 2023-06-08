@@ -594,3 +594,10 @@ C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/main/CMakeFiles/list_i
 C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/main/CMakeFiles/install.dir
 C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/main/CMakeFiles/install/local.dir
 C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/main/CMakeFiles/install/strip.dir
+C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/cJSON/CMakeFiles/__idf_cJSON.dir
+C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/cJSON/CMakeFiles/edit_cache.dir
+C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/cJSON/CMakeFiles/rebuild_cache.dir
+C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/cJSON/CMakeFiles/list_install_components.dir
+C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/cJSON/CMakeFiles/install.dir
+C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/cJSON/CMakeFiles/install/local.dir
+C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/cJSON/CMakeFiles/install/strip.dir

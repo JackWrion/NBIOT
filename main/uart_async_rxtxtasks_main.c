@@ -13,6 +13,7 @@
 #include "driver/uart.h"
 #include "string.h"
 #include "driver/gpio.h"
+#include "cJSON.h"
 
 #define RX_BUF_SIZE  512
 #define TXD_PIN (GPIO_NUM_17)				// TODO config UART here
@@ -23,9 +24,11 @@
 #define BROKER "demo.thingsboard.io"
 
 
+
 static int ACK=0;
 static int Err_count = 0;
 
+static cJSON *json;
 
 //# INIT EVERYTHING..........//////////
 // TODO init power
@@ -98,13 +101,21 @@ int sendData(const char* logName, const char* data)
 
 
 
-char ceng_data[128]="";
-char *psi,*rsrp,*rsrq,*sinr,*cellID;
-int count2 = 2;
+
+
+char ceng_data[256]="";
 static int ceng_len = 0;
+//**************************
+// Process CENG data
+//**************************
+
+char *psi,*rsrp,*rsrq,*sinr,*cellID;
 void getDataCENG(char* rawData){
+	int count2 = 2;
+	if(rawData == NULL)
+		return;
     char* data = strstr(rawData,"\"");
-    //printf("%s",b);
+
     char arrData[strlen(data)];
     for(int i = 0;i < strlen(data);i++){
         arrData[i] = data[i];
@@ -114,26 +125,57 @@ void getDataCENG(char* rawData){
         presentData = strtok(NULL, " ,");
 
         if(count2 == 2){
-            psi = presentData;
+        	cJSON_AddNumberToObject(json, "psi", atoi(presentData));
         }
         else if(count2 == 3){
-            rsrp = presentData;
+        	cJSON_AddNumberToObject(json, "rsrp", atoi(presentData));
         }
         else if(count2 == 5){
-            rsrq = presentData;
+        	cJSON_AddNumberToObject(json, "rsrq", atoi(presentData));
         }
         else if(count2 ==6){
-            sinr = presentData;
+        	cJSON_AddNumberToObject(json, "sinr", atoi(presentData));
         }
         else if(count2 ==8){
-            cellID = presentData;
+        	cJSON_AddNumberToObject(json, "cellID", atoi(presentData));
         }
         count2++;
     }
     count2 = 2;
-    //printf("{\"psi\": &s,\"rsrp\": &s,\"rsrq\": &s,\"sinr\": &s,\"cellID\": &s,}", psi, rsrp, rsrq, sinr, cellID);
-    sprintf(ceng_data,"{\"psi\":%s,\"rsrp\":%s,\"rsrq\":%s,\"sinr\":%s,\"cellID\":%s}", psi, rsrp, rsrq, sinr, cellID);
-    ceng_len = strlen(ceng_data);
+
+}
+
+
+//**************************
+// Process GNSS data
+//**************************
+
+char *date,*longitude,*latitude;
+void getDataCGNSINF(char* rawData){
+	int count3 = 1;
+
+	if(rawData == NULL)
+		return;
+	char* data = strstr(rawData,",");
+	char arrData[strlen(data)];
+	for(int i = 0;i < strlen(data);i++){
+		arrData[i] = data[i];
+	}
+	char* presentData = strtok(arrData,",");
+	while(presentData != NULL && count3 <9){
+	        presentData = strtok(NULL, " ,");
+//	        if(count3 == 0){
+//	        	cJSON_AddStringToObject(json, "date", presentData);
+//	        }
+	        if(count3 == 1){
+	        	cJSON_AddNumberToObject(json, "latitude", strtod(presentData,NULL));
+	        }
+	        else if(count3 == 2){
+	        	cJSON_AddNumberToObject(json, "longitude", strtod(presentData,NULL));
+	        }
+	        count3++;
+	    }
+	count3 = 1;
 }
 
 
@@ -142,9 +184,18 @@ void getDataCENG(char* rawData){
 
 
 
+
+
+
+//**********************************
+// MQTT TASK
+//**********************************
+
 static int status_mqtt = 0;
 static void mqtt_task(void *arg)
 {
+
+	char *json_str = NULL;
 
     static const char *MQTT_TASK_TAG = "MQTT_TASK";
     esp_log_level_set(MQTT_TASK_TAG, ESP_LOG_INFO);
@@ -198,11 +249,19 @@ static void mqtt_task(void *arg)
 
     	//Get CENG DATA
     	else if (status_mqtt == 5){
-    		sendData(MQTT_TASK_TAG, "AT+CENG?\r");		// remember delete malloc
-    		vTaskDelay(5000 / portTICK_PERIOD_MS);
+
+    		sendData(MQTT_TASK_TAG, "AT+CENG?\r");
+    		vTaskDelay(10000 / portTICK_PERIOD_MS);
     		if (ACK) status_mqtt = 6;
     	}
 
+
+    	// Get GNSS DATA
+    	else if (status_mqtt == 6){
+    		sendData(MQTT_TASK_TAG, "AT+SGNSCMD=1,0\r");		// remember delete malloc
+    		vTaskDelay(30000 / portTICK_PERIOD_MS);
+    		if (ACK) status_mqtt = 7;
+    	}
 
 
 
@@ -214,24 +273,38 @@ static void mqtt_task(void *arg)
     	// Format-------------------
     	// AT+SMPUB="messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/update",64,0,1
     	// -------------------------
-        else if (status_mqtt == 6){
+        else if (status_mqtt == 7){
+
         	char msg[100];
         	//sprintf(msg,"AT+SMPUB=\"messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/update\",%d,0,1\r",ceng_len);
+        	//printf("Step 7 .....\n");
+
+
+        	json_str = cJSON_PrintUnformatted(json);
+        	ceng_len = strlen(json_str);
+
+        	strcpy(ceng_data, json_str);
+
         	sprintf(msg,"AT+SMPUB=\"v1/devices/me/telemetry\",%d,0,1\r",ceng_len);
    	   		//sendData(MQTT_TASK_TAG, "AT+SMPUB=\"messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/update\",64,0,0\r");
         	sendData(MQTT_TASK_TAG, msg);
    	   		vTaskDelay(1000 / portTICK_PERIOD_MS);
-   	   		status_mqtt = 7;
+   	   		status_mqtt = 8;
    	   	}
 
 
-    	//add data publish.....
-        else if (status_mqtt == 7){
+    	//Adding data publish..... and DONE
+        else if (status_mqtt == 8){
         	 //strcpy(ceng_data,"{\"psi\":367,\"rsrp\":-70,\"rsrq\":-10,\"sinr\":8,\"cellID\":151089173}   ");
-        	 //printf("Publish at step 7: %s\n",ceng_data);
+
            	 sendData(MQTT_TASK_TAG, ceng_data);
+
+           	 cJSON_free(json_str);
+           	 cJSON_Delete(json);
+           	 json = cJSON_CreateObject();
+
            	 status_mqtt = 5;
-           	 vTaskDelay(10000 / portTICK_PERIOD_MS);
+           	 vTaskDelay(69000 / portTICK_PERIOD_MS);
         }
     }
 }
@@ -320,7 +393,7 @@ static void rx_task(void *arg)
             ACK = 1;
 
 
-            if (strstr(temp,"+CENG")){
+            if (strstr(temp,"CENG")){
                //printf("At step RX 6: Get CENG...\n");
 
                if (rxBytes < 55) {
@@ -337,6 +410,24 @@ static void rx_task(void *arg)
                }
 
             }
+
+            else if (strstr(temp,"SGNSCMD")){
+
+            	if (rxBytes < 80) {
+            		ESP_LOG_BUFFER_HEXDUMP(RX_TASK_TAG, data, rxBytes, ESP_LOG_ERROR);
+            	    ACK = 0;
+            	}
+
+            	else{
+            		ACK = 1;
+            		strcpy(ceng_data,(char*)data);
+            		getDataCGNSINF(ceng_data);
+            		count += 1;
+            		printf("Count: %d\n",count);
+            	}
+
+            }
+
 
             // Process ERROR , EXCEPTION
             else if (strstr(temp,"OK")) {
@@ -407,6 +498,7 @@ void app_main(void)
     power_init();
     led_init();
 
+    json = cJSON_CreateObject();
     xTaskCreate(rx_task, "uart_rx_task", 1024*2, NULL, configMAX_PRIORITIES, NULL);
     xTaskCreate(tx_task, "uart_tx_task", 1024*2, NULL, configMAX_PRIORITIES-1, NULL);
     xTaskCreate(led_task, "LED_task", 1024*2, NULL, configMAX_PRIORITIES-2, NULL);

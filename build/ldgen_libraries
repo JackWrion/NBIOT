@@ -59,3 +59,4 @@ C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/spiffs/libspiffs.a
 C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/ulp/libulp.a
 C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/wifi_provisioning/libwifi_provisioning.a
 C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/main/libmain.a
+C:/Espressif/workspace/uart_async_rxtxtasks/build/esp-idf/cJSON/libcJSON.a
