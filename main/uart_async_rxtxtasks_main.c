@@ -162,8 +162,10 @@ void getDataCGNSINF(char* rawData){
 		arrData[i] = data[i];
 	}
 	char* presentData = strtok(arrData,",");
+	cJSON_AddStringToObject(json, "date", presentData);
+
 	while(presentData != NULL && count3 <9){
-	        presentData = strtok(NULL, " ,");
+	        presentData = strtok(NULL, ",");
 //	        if(count3 == 0){
 //	        	cJSON_AddStringToObject(json, "date", presentData);
 //	        }
@@ -204,6 +206,16 @@ static void mqtt_task(void *arg)
     	//TODO Check connect
     	if (status_mqtt == 0){
     		sendData(MQTT_TASK_TAG, "AT+CNACT=0,1\r");
+    		vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+    		sendData(MQTT_TASK_TAG, "AT+CPSMS=0\r");
+    		vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+    		sendData(MQTT_TASK_TAG, "AT+CEREG=4\r");
+    		vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+
+    		sendData(MQTT_TASK_TAG, "AT+CEREG?\r");
     		status_mqtt = 1;
     		vTaskDelay(5000 / portTICK_PERIOD_MS);
     	}
@@ -232,7 +244,7 @@ static void mqtt_task(void *arg)
     	// CONNECTING.....
     	else if (status_mqtt == 3){
     		sendData(MQTT_TASK_TAG, "AT+SMCONN\r");
-    	    vTaskDelay(20000 / portTICK_PERIOD_MS);
+    	    vTaskDelay(10000 / portTICK_PERIOD_MS);
     	    if (ACK) status_mqtt = 4;
     	}
 
@@ -241,9 +253,14 @@ static void mqtt_task(void *arg)
     	else if (status_mqtt == 4){
     		//sendData(TX_TASK_TAG, "at+cpowd=0\r");
     		//sendData(MQTT_TASK_TAG, "AT+SMSUB=\"messages/d86dabaa-d818-4e30-b7ee-fa649f772bda/status\",0\r");
-    		sendData(MQTT_TASK_TAG, "AT+SMSUB=\"v1/devices/me/rpc/request/+\",0\r");
+    		//sendData(MQTT_TASK_TAG, "AT+SMSUB=\"v1/devices/me/rpc/request/+\",0\r");
     		status_mqtt = 5;
-    		vTaskDelay(5000 / portTICK_PERIOD_MS);
+    		//sendData(MQTT_TASK_TAG, "AT+CPSMS=1,,,\"10001010\",\"00100010\"\r");
+    		sendData(MQTT_TASK_TAG, "AT+CPSMS=1\r");
+    		vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+    		sendData(MQTT_TASK_TAG, "AT+CPSMRDP\r");
+    		vTaskDelay(10000 / portTICK_PERIOD_MS);
     	}
 
 
@@ -259,15 +276,9 @@ static void mqtt_task(void *arg)
     	// Get GNSS DATA
     	else if (status_mqtt == 6){
     		sendData(MQTT_TASK_TAG, "AT+SGNSCMD=1,0\r");		// remember delete malloc
-    		vTaskDelay(30000 / portTICK_PERIOD_MS);
+    		vTaskDelay(40000 / portTICK_PERIOD_MS);
     		if (ACK) status_mqtt = 7;
     	}
-
-
-
-
-
-
 
     	// Publishing.......
     	// Format-------------------
@@ -297,15 +308,45 @@ static void mqtt_task(void *arg)
         else if (status_mqtt == 8){
         	 //strcpy(ceng_data,"{\"psi\":367,\"rsrp\":-70,\"rsrq\":-10,\"sinr\":8,\"cellID\":151089173}   ");
 
-           	 sendData(MQTT_TASK_TAG, ceng_data);
+           	sendData(MQTT_TASK_TAG, ceng_data);
 
-           	 cJSON_free(json_str);
-           	 cJSON_Delete(json);
-           	 json = cJSON_CreateObject();
+            cJSON_free(json_str);
+            cJSON_Delete(json);
+            json = cJSON_CreateObject();
 
-           	 status_mqtt = 5;
-           	 vTaskDelay(69000 / portTICK_PERIOD_MS);
+            vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+           	sendData(MQTT_TASK_TAG, "AT+SMDISC\r");
+           	status_mqtt = 9;
+           	vTaskDelay(190000 / portTICK_PERIOD_MS);
         }
+
+
+
+        else if (status_mqtt == 9) {
+        	gpio_set_level(POWER,0);
+        	vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+        	gpio_set_level(POWER,1);
+        	vTaskDelay(10000 / portTICK_PERIOD_MS);
+
+        	sendData(MQTT_TASK_TAG, "ATE0\r");
+        	vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+        	status_mqtt = 0;
+        	vTaskDelay(5000 / portTICK_PERIOD_MS);
+
+//        	sendData(MQTT_TASK_TAG, "AT+CNACT=0,1\r");
+//        	vTaskDelay(2000 / portTICK_PERIOD_MS);
+//
+//        	sendData(MQTT_TASK_TAG, "AT+CPSMS=0\r");
+//        	vTaskDelay(1000 / portTICK_PERIOD_MS);
+//
+//
+
+
+        }
+
     }
 }
 
@@ -319,7 +360,7 @@ static void mqtt_task(void *arg)
 
 
 static int count = -3;
-static void tx_task(void *arg)
+static void prepare_task(void *arg)
 {
     static const char *TX_TASK_TAG = "TX_TASK";
     esp_log_level_set(TX_TASK_TAG, ESP_LOG_INFO);
@@ -392,7 +433,6 @@ static void rx_task(void *arg)
             char* temp = (char*)data;
             ACK = 1;
 
-
             if (strstr(temp,"CENG")){
                //printf("At step RX 6: Get CENG...\n");
 
@@ -419,6 +459,7 @@ static void rx_task(void *arg)
             	}
 
             	else{
+
             		ACK = 1;
             		strcpy(ceng_data,(char*)data);
             		getDataCGNSINF(ceng_data);
@@ -479,15 +520,6 @@ static void led_task(void * arg){
 
 
 
-//static void GNSS(){
-//	AT+CGNSPWR=1
-//	AT+CGNSINF
-//}
-
-
-
-
-
 
 
 
@@ -500,6 +532,6 @@ void app_main(void)
 
     json = cJSON_CreateObject();
     xTaskCreate(rx_task, "uart_rx_task", 1024*2, NULL, configMAX_PRIORITIES, NULL);
-    xTaskCreate(tx_task, "uart_tx_task", 1024*2, NULL, configMAX_PRIORITIES-1, NULL);
+    xTaskCreate(prepare_task, "uart_tx_task", 1024*2, NULL, configMAX_PRIORITIES-1, NULL);
     xTaskCreate(led_task, "LED_task", 1024*2, NULL, configMAX_PRIORITIES-2, NULL);
 }
