@@ -125,7 +125,7 @@ void getDataCENG(char* rawData){
         presentData = strtok(NULL, " ,");
 
         if(count2 == 2){
-        	cJSON_AddNumberToObject(json, "psi", atoi(presentData));
+        	cJSON_AddNumberToObject(json, "pci", atoi(presentData));
         }
         else if(count2 == 3){
         	cJSON_AddNumberToObject(json, "rsrp", atoi(presentData));
