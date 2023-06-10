@@ -215,3 +215,14 @@
 13	166	0	C:/Espressif/workspace/uart_async_rxtxtasks/build/bootloader/esp-idf/esptool_py/CMakeFiles/bootloader_check_size	5884c76326722e66
 15	170	0	esp-idf/esptool_py/CMakeFiles/bootloader_check_size	5884c76326722e66
 15	170	0	C:/Espressif/workspace/uart_async_rxtxtasks/build/bootloader/esp-idf/esptool_py/CMakeFiles/bootloader_check_size	5884c76326722e66
+9	202	7081166581773077	esp-idf/esp_app_format/CMakeFiles/__idf_esp_app_format.dir/esp_app_desc.c.obj	12ec9f9d38d2c63a
+18	368	7081166583433086	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_init.c.obj	42b0bfc96a8ca5a
+369	485	7081166584623074	esp-idf/bootloader_support/libbootloader_support.a	b82f414797640bb4
+486	576	7081166585553078	esp-idf/esp_app_format/libesp_app_format.a	87bfc1893ad644e1
+578	875	7081166588373068	bootloader.elf	9a1bd40599672332
+876	1251	7081166592283088	.bin_timestamp	1f975306d4c201b4
+876	1251	7081166592283088	C:/Espressif/workspace/uart_async_rxtxtasks/build/bootloader/.bin_timestamp	1f975306d4c201b4
+1252	1389	0	esp-idf/esptool_py/CMakeFiles/bootloader_check_size	5884c76326722e66
+1252	1389	0	C:/Espressif/workspace/uart_async_rxtxtasks/build/bootloader/esp-idf/esptool_py/CMakeFiles/bootloader_check_size	5884c76326722e66
+25	323	0	esp-idf/esptool_py/CMakeFiles/bootloader_check_size	5884c76326722e66
+25	323	0	C:/Espressif/workspace/uart_async_rxtxtasks/build/bootloader/esp-idf/esptool_py/CMakeFiles/bootloader_check_size	5884c76326722e66
