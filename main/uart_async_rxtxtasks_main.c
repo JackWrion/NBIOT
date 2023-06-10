@@ -256,6 +256,10 @@ static void mqtt_task(void *arg)
     		//sendData(MQTT_TASK_TAG, "AT+SMSUB=\"v1/devices/me/rpc/request/+\",0\r");
     		status_mqtt = 5;
     		//sendData(MQTT_TASK_TAG, "AT+CPSMS=1,,,\"10001010\",\"00100010\"\r");
+
+    		vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+
     		sendData(MQTT_TASK_TAG, "AT+CEDRXS=1,5,\"0010\"\r");
     		vTaskDelay(2000 / portTICK_PERIOD_MS);
 
