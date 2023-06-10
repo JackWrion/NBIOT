@@ -315,7 +315,7 @@ static void mqtt_task(void *arg)
             json = cJSON_CreateObject();
 
            	status_mqtt = 5;
-           	vTaskDelay(190000 / portTICK_PERIOD_MS);
+           	vTaskDelay(249000 / portTICK_PERIOD_MS);
         }
 
     }
