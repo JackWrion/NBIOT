@@ -125,7 +125,7 @@ void getDataCENG(char* rawData){
         presentData = strtok(NULL, " ,");
 
         if(count2 == 2){
-        	cJSON_AddNumberToObject(json, "psi", atoi(presentData));
+        	cJSON_AddNumberToObject(json, "pci", atoi(presentData));
         }
         else if(count2 == 3){
         	cJSON_AddNumberToObject(json, "rsrp", atoi(presentData));
@@ -211,8 +211,8 @@ static void mqtt_task(void *arg)
     		sendData(MQTT_TASK_TAG, "AT+CPSMS=0\r");
     		vTaskDelay(2000 / portTICK_PERIOD_MS);
 
-    		sendData(MQTT_TASK_TAG, "AT+CEREG=4\r");
-    		vTaskDelay(2000 / portTICK_PERIOD_MS);
+    		sendData(MQTT_TASK_TAG, "AT+CEREG=0\r");
+    		vTaskDelay(4000 / portTICK_PERIOD_MS);
 
 
     		sendData(MQTT_TASK_TAG, "AT+CEREG?\r");
@@ -256,11 +256,11 @@ static void mqtt_task(void *arg)
     		//sendData(MQTT_TASK_TAG, "AT+SMSUB=\"v1/devices/me/rpc/request/+\",0\r");
     		status_mqtt = 5;
     		//sendData(MQTT_TASK_TAG, "AT+CPSMS=1,,,\"10001010\",\"00100010\"\r");
-    		sendData(MQTT_TASK_TAG, "AT+CPSMS=1\r");
-    		vTaskDelay(2000 / portTICK_PERIOD_MS);
-
-    		sendData(MQTT_TASK_TAG, "AT+CPSMRDP\r");
-    		vTaskDelay(10000 / portTICK_PERIOD_MS);
+//    		sendData(MQTT_TASK_TAG, "AT+CPSMS=1\r");
+//    		vTaskDelay(2000 / portTICK_PERIOD_MS);
+//
+//    		sendData(MQTT_TASK_TAG, "AT+CPSMRDP\r");
+    		vTaskDelay(1000 / portTICK_PERIOD_MS);
     	}
 
 
@@ -314,38 +314,11 @@ static void mqtt_task(void *arg)
             cJSON_Delete(json);
             json = cJSON_CreateObject();
 
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-
-           	sendData(MQTT_TASK_TAG, "AT+SMDISC\r");
-           	status_mqtt = 9;
-           	vTaskDelay(190000 / portTICK_PERIOD_MS);
+           	//sendData(MQTT_TASK_TAG, "AT+SMDISC\r");
+           	status_mqtt = 5;
+           	vTaskDelay(249000 / portTICK_PERIOD_MS);
         }
 
-
-
-        else if (status_mqtt == 9) {
-        	gpio_set_level(POWER,0);
-        	vTaskDelay(2000 / portTICK_PERIOD_MS);
-
-        	gpio_set_level(POWER,1);
-        	vTaskDelay(10000 / portTICK_PERIOD_MS);
-
-        	sendData(MQTT_TASK_TAG, "ATE0\r");
-        	vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        	status_mqtt = 0;
-        	vTaskDelay(5000 / portTICK_PERIOD_MS);
-
-//        	sendData(MQTT_TASK_TAG, "AT+CNACT=0,1\r");
-//        	vTaskDelay(2000 / portTICK_PERIOD_MS);
-//
-//        	sendData(MQTT_TASK_TAG, "AT+CPSMS=0\r");
-//        	vTaskDelay(1000 / portTICK_PERIOD_MS);
-//
-//
-
-
-        }
 
     }
 }
